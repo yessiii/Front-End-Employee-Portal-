@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Employee Portal - Luxe Glow Spa</title>
+  <link rel="stylesheet" href="bookingemployee.css" />
+  <style>
+    .booking-card {
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      padding: 15px;
+      margin: 10px auto;
+      max-width: 500px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    .booking-card p {
+      margin: 5px 0;
+    }
+  </style>
+</head>
+<body>
+  <header class="booking-header">
+    <a href="spa Homepage.html" class="home-btn">Home</a>
+  </header>
+
+  <div class="booking-system">
+    <h2>Employee Portal</h2>
+
+    <!-- Bookings Display Section -->
+    <section class="booking-display">
+      <div class="spa-header">
+        <h3>Spa Appointments</h3>
+      </div>
+    <!-- All cards go inside this grid -->
+       <div class="booking-grid" id="booking-grid"></div>
+    </section>
+    
+
+    <!-- Confirmation Modal -->
+    <div id="confirmation-modal" class="modal">
+      <div class="modal-content">
+        <h3>Confirm Cancellation</h3>
+        <p id="modal-message"></p>
+        <div class="modal-actions">
+          <button id="confirm-cancel" class="modal-btn confirm">Yes, Cancel</button>
+          <button id="close-modal" class="modal-btn close">No, Go Back</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cleaning Checklist -->
+    <div class="form-group">
+      <h3>Cleaning Checklist</h3>
+      <ul>
+        <li>Wipe down all surfaces at opening and closing</li>
+        <li>Sanitize tools between appointments</li>
+        <li>Restock towels and supplies</li>
+        <li>Empty trash bins before leaving</li>
+      </ul>
+    </div>
+
+    <!-- Manager Contact -->
+    <div class="form-group">
+      <h3>Manager Contact Information</h3>
+      <p><strong>Manager:</strong> Sammy Spartan<br>Email: sammy@luxeglowspa.com<br>Phone: (000) 123-4567</p>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const displaySection = document.querySelector(".booking-display");
+
+      fetch("https://spa-backend-6h4t.onrender.com/api/bookings")
+        .then(response => response.json())
+        .then(bookings => {
+          if (bookings.length === 0) {
+            displaySection.innerHTML += "<p style='text-align:center;'>No bookings found.</p>";
+            return;
+          }
+
+          bookings.forEach(booking => {
+            const id = booking._id || booking.id; // Fallback if needed
+
+            const card = document.createElement("div");
+            card.className = "booking-card";
+            card.setAttribute("id", `card-${id}`);
+            card.innerHTML = `
+              <p><strong>Name:</strong> ${booking.name || "N/A"}</p>
+              <p><strong>Email:</strong> ${booking.email || "N/A"}</p>
+              <p><strong>Phone:</strong> ${booking.phone || "N/A"}</p>
+              <p><strong>Appointment Date:</strong> ${booking.date || "N/A"}</p>
+              <p><strong>Time:</strong> ${booking.time || "N/A"}</p>
+              <p><strong>Service:</strong> ${booking.service || "N/A"}</p>
+              <p><strong>Assigned Employee:</strong> ${booking.employee || "N/A"}</p>
+              <p><strong>Duration:</strong> ${booking.duration || "N/A"} minutes</p>
+              <button class="delete-btn" data-id="${id}">Cancel Appointment</button>
+              <p class="cancel-status-msg" id="status-${id}"></p>
+            `;
+            displaySection.appendChild(card);
+          });
+
+          // Attach delete listeners
+          document.querySelectorAll(".delete-btn").forEach(button => {
+            button.addEventListener("click", function () {
+              const bookingId = this.getAttribute("data-id");
+              if (confirm("Are you sure you want to cancel this appointment?")) {
+                fetch(`https://spa-backend-6h4t.onrender.com/api/bookings/${bookingId}`, {
+                  method: "DELETE"
+                })
+                .then(response => response.json())
+                .then(data => {
+                  if (data.success || data.message?.includes("deleted")) {
+                    document.getElementById(`card-${bookingId}`).remove();
+                    alert("✅ Appointment canceled.");
+                  } else {
+                    document.getElementById(`status-${bookingId}`).textContent = "❌ Unable to cancel appointment.";
+                  }
+                })
+                .catch(error => {
+                  console.error("Error deleting booking:", error);
+                  document.getElementById(`status-${bookingId}`).textContent = "❌ Server error. Try again later.";
+                });
+              }
+            });
+          });
+        })
+        .catch(error => {
+          console.error("Error fetching bookings:", error);
+          displaySection.innerHTML += "<p style='text-align:center;color:red;'>Could not load bookings.</p>";
+        });
+    });
+  </script>
+</body>
+</html>
